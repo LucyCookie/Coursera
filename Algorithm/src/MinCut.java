@@ -8,7 +8,8 @@ public class MinCut {
     public static void main(String[] args) {
         long ts = System.currentTimeMillis();
         int minCut;
-        File file = new File("/Users/qiqu/Google Drive/coursera/Coursera/Algorithm/kargerMinCut.txt");
+//        File file = new File("/Users/qiqu/Google Drive/coursera/Coursera/Algorithm/kargerMinCut.txt");
+        File file = new File("C:\\Users\\Joseph\\Desktop\\kargerMinCut.txt");
         Graph graph = loadFile(file);
         minCut = graph.edges.size();
         for (int i = 0; i < (graph.nodes.size() * graph.nodes.size()); i++) {
@@ -20,11 +21,10 @@ public class MinCut {
                 nodeSize--;
             }
             if (trial.edges.size() < minCut) minCut = trial.edges.size();
-            System.out.println(trial.edges.size());
         }
         System.out.println(minCut);
         long te = System.currentTimeMillis();
-        double tusec = (ts - te) / 1000;
+        double tusec = (te - ts) / 1000;
         System.out.println(tusec);
     }
 
@@ -34,19 +34,27 @@ public class MinCut {
         try {
             FileReader fileReader = new FileReader(graphFile);
             BufferedReader bufReader = new BufferedReader(fileReader);
-            String nodeLine;
-            while ((nodeLine = bufReader.readLine()) != null) {
+            ArrayList<String> nodeLines = new ArrayList<>();
+            String line;
+            while ((line=bufReader.readLine()) != null) {
+                nodeLines.add(line);
                 Node node = new Node();
-                String[] nodeList= nodeLine.split("\t");
-                node.name = nodeList[0];
+                String[] nodeList=line.split("\t");
+                node.name=nodeList[0];
                 graph.nodes.add(node);
+            }
+            for (int j=0;j<nodeLines.size();j++){
+                String[] nodeList= nodeLines.get(j).split("\t");
+                Node mainNode=graph.nodes.get(j);
                 for (i = 1; i < nodeList.length; i++) {
                     Edge edge = new Edge();
-                    edge.mainNodeName = node.name;
-                    edge.targetNodeName = nodeList[i];
-                    node.edges.add(nodeList[i]);
+                    Node targetNode=graph.nodes.get(Integer.parseInt(nodeList[i])-1);
+                    edge.mainNode = mainNode;
+                    edge.targetNode = targetNode;
                     if (!graph.existEdge(edge)) {
                         graph.edges.add(edge);
+                        mainNode.edges.add(edge);
+                        targetNode.edges.add(edge);
                     }
                 }
             }
@@ -70,16 +78,19 @@ class Graph{
     }
 
     void contraction(Edge contractionEdge) {
-        Node removedNode=nodes.get(Integer.parseInt(contractionEdge.targetNodeName)-1);
-        Node mainNode=nodes.get(Integer.parseInt(contractionEdge.targetNodeName)-1);
-        mainNode.edges.remove(contractionEdge.targetNodeName);
-        edges.removeAll(contractionEdge);
-        for (int i = 0; i < removedNode.edges.size(); i++) {
-            if (!mainNode.edges.contains(removedNode.edges.get(i))){
-                mainNode.edges.add(removedNode.edges.get(i));
-            }
+        Node removedNode=contractionEdge.targetNode;
+        Node mainNode=contractionEdge.mainNode;
+        for (int i = 0; i < removedNode.edges.size(); i++) {//relink all edges linked to the removed node to the main node
+            if(removedNode.edges.get(i).mainNode.equals(removedNode)) removedNode.edges.get(i).mainNode=mainNode;
+            else removedNode.edges.get(i).targetNode=mainNode;
         }
-        this.edges.remove(contractionEdge);
+        for (int i = 0; i < removedNode.edges.size(); i++){//remove the loop edge
+            if (removedNode.edges.get(i).mainNode.equals(removedNode.edges.get(i).targetNode)){
+                this.edges.remove(removedNode.edges.get(i));
+                mainNode.edges.remove(removedNode.edges.get(i));
+            }else mainNode.edges.add(removedNode.edges.get(i));
+        }
+        this.nodes.remove(removedNode);
     }
 
     public Graph replicate() {
@@ -87,40 +98,34 @@ class Graph{
         for (int i = 0; i < this.nodes.size(); i++) {
             Node node=new Node();
             node.name=this.nodes.get(i).name;
-            for (int j=0;j<this.nodes.get(i).edges.size();j++){
-                node.edges.add(this.nodes.get(i).edges.get(j));
-            }
             c.nodes.add(node);
         }
-        for (int i = 0; i < this.edges.size(); i++) {
-            Edge edge = new Edge();
-            edge.mainNodeName = this.edges.get(i).mainNodeName;
-            edge.targetNodeName = this.edges.get(i).targetNodeName;
-            c.edges.add(edge);
+        for (int i = 0; i < this.nodes.size(); i++) {
+            for (int j = 0; j < this.nodes.get(i).edges.size(); j++) {
+                Edge edge=new Edge();
+                edge.mainNode=c.nodes.get(Integer.parseInt(this.nodes.get(i).edges.get(j).mainNode.name)-1);
+                edge.targetNode=c.nodes.get(Integer.parseInt(this.nodes.get(i).edges.get(j).targetNode.name)-1);
+                if(!c.existEdge(edge)) {
+                    edge.mainNode.edges.add(edge);
+                    edge.targetNode.edges.add(edge);
+                    c.edges.add(edge);
+                }
+            }
         }
         return c;
     }
 }
 
 class Edge {
-    String mainNodeName, targetNodeName;
-
+    Node mainNode, targetNode;
     boolean equal(Edge edge) {
-        if (edge.mainNodeName.equals(this.mainNodeName) && edge.targetNodeName.equals(this.targetNodeName) || (edge.mainNodeName.equals(this.targetNodeName) && edge.targetNodeName.equals(this.mainNodeName)))
+        if (edge.mainNode.equals(this.mainNode) && edge.targetNode.equals(this.targetNode) || (edge.mainNode.equals(this.targetNode) && edge.targetNode.equals(this.mainNode)))
             return true;
         return false;
-    }
-
-    void mergetoNodeA(Edge contractionEdge) {
-        if (contractionEdge.targetNodeName.equals(this.mainNodeName)) {
-            this.mainNodeName = contractionEdge.mainNodeName;
-        } else if (contractionEdge.targetNodeName.equals(this.targetNodeName)) {
-            this.targetNodeName = contractionEdge.mainNodeName;
-        }
     }
 }
 
 class Node {
     String name;
-    ArrayList<String> edges=new ArrayList<>();
+    ArrayList<Edge> edges=new ArrayList<>();
 }
