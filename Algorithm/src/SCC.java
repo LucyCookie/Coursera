@@ -7,7 +7,7 @@ import java.util.*;
 public class SCC {
     public static void main(String[] args) {
         long ts = System.currentTimeMillis();
-        File file = new File("/Users/qiqu/Google Drive/coursera/Coursera/Algorithm/SCC.txt");
+        File file = new File("/Users/qiqu/Google Drive/coursera/SCC.txt");
         Graph graph = loadGraph(file);
         boolean reverse=true;
         graph.DFSLoop(reverse);
